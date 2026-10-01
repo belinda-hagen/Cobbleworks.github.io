@@ -73,3 +73,103 @@ filterButtons.forEach((button) => {
 });
 
 search?.addEventListener('input', filterPlugins);
+
+/* ---------- Title-screen splash text ---------- */
+const splash = document.querySelector('[data-splash]');
+const splashes = [
+  '13 plugins!',
+  'Open source!',
+  'Do distribute!',
+  'MIT licensed!',
+  'Also try Paper!',
+  'Now with Java 25!',
+  'Redstone not included!',
+  'Minecarts go brr!',
+  'Pull requests welcome!',
+  'Blood Moon rising!',
+  'Backups saved!',
+  'Made of cobblestone!',
+  '100% pure Java!',
+  'Wireless redstone!',
+  'Read the README!',
+  'Grapple responsibly!',
+];
+let splashIndex = -1;
+
+const nextSplash = () => {
+  if (!splash) return;
+  let index;
+  do index = Math.floor(Math.random() * splashes.length);
+  while (index === splashIndex && splashes.length > 1);
+  splashIndex = index;
+  splash.textContent = splashes[index];
+};
+
+nextSplash();
+splash?.addEventListener('click', nextSplash);
+
+/* ---------- XP bar tracks scroll progress, levels 0–30 ---------- */
+const xpFill = document.querySelector('[data-xp-fill]');
+const xpLevel = document.querySelector('[data-xp-level]');
+
+const updateXp = () => {
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  const progress = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+  const levels = progress * 30;
+  const level = Math.floor(levels);
+  xpFill?.style.setProperty('--xp-progress', `${level === 30 ? 100 : (levels - level) * 100}%`);
+  if (xpLevel) xpLevel.textContent = String(level);
+};
+
+updateXp();
+window.addEventListener('scroll', updateXp, { passive: true });
+window.addEventListener('resize', updateXp);
+
+/* ---------- Optional menu click sound (off by default) ---------- */
+const soundToggle = document.querySelector('[data-sound-toggle]');
+const soundLabel = document.querySelector('[data-sound-label]');
+let soundOn = false;
+let audio;
+
+try {
+  soundOn = localStorage.getItem('cobbleworks-sound') === 'on';
+} catch {
+  soundOn = false;
+}
+
+const renderSound = () => {
+  soundToggle?.setAttribute('aria-pressed', String(soundOn));
+  if (soundLabel) soundLabel.textContent = soundOn ? 'ON' : 'OFF';
+};
+
+const playClick = () => {
+  if (!soundOn) return;
+  audio ??= new (window.AudioContext || window.webkitAudioContext)();
+  const now = audio.currentTime;
+  const osc = audio.createOscillator();
+  const gain = audio.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(1400, now);
+  osc.frequency.exponentialRampToValueAtTime(500, now + 0.05);
+  gain.gain.setValueAtTime(0.06, now);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
+  osc.connect(gain).connect(audio.destination);
+  osc.start(now);
+  osc.stop(now + 0.08);
+};
+
+soundToggle?.addEventListener('click', () => {
+  soundOn = !soundOn;
+  try {
+    localStorage.setItem('cobbleworks-sound', soundOn ? 'on' : 'off');
+  } catch {
+    // Preference simply isn't remembered.
+  }
+  renderSound();
+});
+
+document.addEventListener('pointerdown', (event) => {
+  if (event.target.closest('.button, .filter-buttons button, .sound-toggle, .menu-button, .splash')) playClick();
+});
+
+renderSound();
